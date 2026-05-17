@@ -6,7 +6,7 @@
 //====================================================================================================================
 enum class state_player
 {
-	ALIVE, DEATH, FELL, BAT, KILL_TO_VAMPUS
+	ALIVE, DEATH, FELL, KILL_THE_VAMPUS, MISS
 };
 //====================================================================================================================
 // CAVE_LIST
@@ -14,8 +14,8 @@ enum class state_player
 struct Cave_List
 {
 	std::vector<std::vector<int>> generate_rooms();	// Генерация комнат
-	Cave_List *game(std::vector<std::vector<int>> cave_array);
-	std::vector<std::vector<int>> cave;
+	void game(std::vector<std::vector<int>> cave_array);
+	//			std::vector<std::vector<int>> cave;
 
 
 	std::vector<int> bat = { 2, 5, 8, 13, 16, 19 };
@@ -25,36 +25,97 @@ struct Cave_List
 //====================================================================================================================
 std::vector<std::vector<int>> Cave_List::generate_rooms() {
 //	std::mt19937 gen(time(nullptr));
-	std::vector<std::vector<int>> result;
+	std::vector<std::vector<int>> result(20);
 
 	//	Жёсткая генерация пещеры
-	result[0] =  {  7,  5, 2  };
-	result[1] =  {  5, 14, 8  };
-	result[2] =  {  3,  0, 4  };
-	result[3] =  { 10,  9, 2  };
-	result[4] =  {  2,  6, 11 };
-	result[5] =  {  7,  0, 1  };
-	result[6] =  {  4, 11, 14 };
-	result[7] =  {  9,  0, 5  };
-	result[8] =  { 14,  1, 11 };
-	result[9] =  { 12,  7, 3  };
-	result[10] = {  3, 13, 16 };
-	result[11] = {  8,  6, 4  };
-	result[12] = {  9, 13, 15 };
-	result[13] = { 15, 12, 10 };
-	result[14] = {  1,  8, 6  };
-	result[15] = { 18, 13, 12 };
-	result[16] = { 19, 17, 10 };
-	result[17] = { 16, 19, 18 };
-	result[18] = { 17, 19, 15 };
-	result[19] = { 16, 17, 18 };
+	result[0].push_back(7);
+	result[0].push_back(5);
+	result[0].push_back(2);
+
+	result[1].push_back(5);
+	result[1].push_back(14);
+	result[1].push_back(8);
+
+	result[2].push_back(3);
+	result[2].push_back(0);
+	result[2].push_back(4);
+
+	result[3].push_back(10);
+	result[3].push_back(9);
+	result[3].push_back(2);
+
+	result[4].push_back(2);
+	result[4].push_back(6);
+	result[4].push_back(11);
+
+	result[5].push_back(7);
+	result[5].push_back(0);
+	result[5].push_back(1);
+
+	result[6].push_back(4);
+	result[6].push_back(11);
+	result[6].push_back(14);
+
+	result[7].push_back(9);
+	result[7].push_back(0);
+	result[7].push_back(5);
+
+	result[8].push_back(14);
+	result[8].push_back(1);
+	result[8].push_back(11);
+
+	result[9].push_back(12);
+	result[9].push_back(7);
+	result[9].push_back(3);
+	
+	result[10].push_back(3);
+	result[10].push_back(13);
+	result[10].push_back(16);
+
+	result[11].push_back(8);
+	result[11].push_back(6);
+	result[11].push_back(4);
+
+	result[12].push_back(9);
+	result[12].push_back(13);
+	result[12].push_back(15);
+
+	result[13].push_back(15);
+	result[13].push_back(12);
+	result[13].push_back(10);
+
+	result[14].push_back(1);
+	result[14].push_back(8);
+	result[14].push_back(6);
+
+	result[15].push_back(18);
+	result[15].push_back(13);
+	result[15].push_back(12);
+
+	result[16].push_back(19);
+	result[16].push_back(17);
+	result[16].push_back(10);
+
+	result[17].push_back(16);
+	result[17].push_back(19);
+	result[17].push_back(18);
+
+	result[18].push_back(17);
+	result[18].push_back(19);
+	result[18].push_back(15);
+
+	result[19].push_back(16);
+	result[19].push_back(17);
+	result[19].push_back(18);
+
 	return result; }
 //====================================================================================================================
-Cave_List *Cave_List::game(std::vector<std::vector<int>> cave_array) {
+void Cave_List::game(std::vector<std::vector<int>> cave_array) {
 	state_player current_state;
 	current_state = state_player::ALIVE;
 	int move = 0;
 	int player = 7;
+	int arrow = 5;
 	std::vector<int> current = {};
 	std::string stroke = {};
 
@@ -67,7 +128,7 @@ Cave_List *Cave_List::game(std::vector<std::vector<int>> cave_array) {
 		std::cout << "You are movine to rooms: ";
 
 		for (int a : current)
-			std::cout << a << '   ';
+			std::cout << a << "   ";
 			
 		std::cout << '\n';
 
@@ -83,23 +144,54 @@ Cave_List *Cave_List::game(std::vector<std::vector<int>> cave_array) {
 		}
 
 		std::cout << "What are you going to do?\n";
-		std::cin >> stroke;											// Ввод m* or s*
-	
+		std::cout << "Move: m1 - move to room 1.\nShot: s1-3-5 - shot the room 1-3-5, if wrong way: -1 arrow!\n";
+		std::cin >> stroke;
+
 		std::string res = {};
 		char s = stroke[0];
-
-		for (char m : stroke) {
-			if (std::isdigit(m))
-				res += m;
-		}
+		std::vector<int> temp = {};
 
 		if (s == 's')
 		{
-			// Логика стрельбы
+			arrow--;
+			int path_arrow = player;
+
+			for (int i = 1; i < stroke.size(); i++) {
+				if (stroke[i] == '-') {
+					int f = std::stoi(res);
+					temp.push_back(f);
+					continue;
+				}
+				else
+					res += stroke[i];
+			}
+			for (int g : temp)
+				if (g == wampus)
+					current_state = state_player::KILL_THE_VAMPUS;
+
+			for (int h : temp)
+			{
+				if (current_state == state_player::MISS)
+					break;
+
+				for (int m : cave_array[path_arrow]) {
+					if (h == m) {
+						path_arrow = h;
+						break;
+					}
+					else
+						current_state = state_player::MISS;
+				}
+			}
+			// Еще нужна проверка нет ли Вампуса рядом с комнатами где пролетает стрела
 		}
 
 		if (s == 'm') {
-			int m = std::stoi(stroke);
+			for (char m : stroke) {
+				if (std::isdigit(m))
+					res += m;
+			}
+			int m = std::stoi(res);
 			player = m;
 		}
 
@@ -114,21 +206,20 @@ Cave_List *Cave_List::game(std::vector<std::vector<int>> cave_array) {
 
 		if (current_state == state_player::DEATH)
 			std::cout << "You were killed by Wampus\n";
+
+		if (current_state == state_player::KILL_THE_VAMPUS)
+			std::cout << "You`re WIN!\n";
 	}
 }
 //====================================================================================================================
-int main()
-{
-	std::cout << "Welcome to the GAME 'HUNT TO VAMPUS'" << '\n';
-
+int main() {
+	std::cout << "Welcome to the GAME 'HUNT THE VAMPUS'" << '\n';
 	Cave_List cave;
 
 	while (true) {
-		std::vector<std::vector<int>> start_rooms = cave.generate_rooms();	// Определили вектор с псевдослучайными числами(наши комнаты)
-
+		std::vector<std::vector<int>> start_rooms = cave.generate_rooms();
 		cave.game(start_rooms);
-
-	} 
+	}
 
 	return 0;
 }
