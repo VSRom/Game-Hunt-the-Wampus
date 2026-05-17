@@ -14,13 +14,21 @@ enum class state_player
 struct Cave_List
 {
 	std::vector<std::vector<int>> generate_rooms();	// Генерация комнат
-	void game(std::vector<std::vector<int>> cave_array);
-	//			std::vector<std::vector<int>> cave;
 
+	std::string welcome(int player, std::vector<std::vector<int>> &cave_array);	// Приветствие
+
+	void shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array);	// Стрельба
+
+	void moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array);		// Движение
+
+	void final_round_state(state_player &cur_state);	// Состояние в конце раунда
+
+	void game(std::vector<std::vector<int>> &cave_array);	// Игра
 
 	std::vector<int> bat = { 2, 5, 8, 13, 16, 19 };
-	std::vector<int> fel = { 1, 6, 9, 12, 15, 18 };
+	std::vector<int> fel = { 1, 9, 12, 18 };
 	int wampus = 17;
+	int arrow = 5;
 };
 //====================================================================================================================
 std::vector<std::vector<int>> Cave_List::generate_rooms() {
@@ -28,197 +36,227 @@ std::vector<std::vector<int>> Cave_List::generate_rooms() {
 	std::vector<std::vector<int>> result(20);
 
 	//	Жёсткая генерация пещеры
-	result[0].push_back(7);
-	result[0].push_back(5);
-	result[0].push_back(2);
+	result[0].push_back(7); result[0].push_back(5); result[0].push_back(2);
 
-	result[1].push_back(5);
-	result[1].push_back(14);
-	result[1].push_back(8);
+	result[1].push_back(5); result[1].push_back(14); result[1].push_back(8);
 
-	result[2].push_back(3);
-	result[2].push_back(0);
-	result[2].push_back(4);
+	result[2].push_back(3); result[2].push_back(0); result[2].push_back(4);
 
-	result[3].push_back(10);
-	result[3].push_back(9);
-	result[3].push_back(2);
+	result[3].push_back(10); result[3].push_back(9); result[3].push_back(2);
 
-	result[4].push_back(2);
-	result[4].push_back(6);
-	result[4].push_back(11);
+	result[4].push_back(2); result[4].push_back(6); result[4].push_back(11);
 
-	result[5].push_back(7);
-	result[5].push_back(0);
-	result[5].push_back(1);
+	result[5].push_back(7); result[5].push_back(0); result[5].push_back(1);
 
-	result[6].push_back(4);
-	result[6].push_back(11);
-	result[6].push_back(14);
+	result[6].push_back(4); result[6].push_back(11); result[6].push_back(14);
 
-	result[7].push_back(9);
-	result[7].push_back(0);
-	result[7].push_back(5);
+	result[7].push_back(9); result[7].push_back(0); result[7].push_back(5);
 
-	result[8].push_back(14);
-	result[8].push_back(1);
-	result[8].push_back(11);
+	result[8].push_back(14); result[8].push_back(1); result[8].push_back(11);
 
-	result[9].push_back(12);
-	result[9].push_back(7);
-	result[9].push_back(3);
+	result[9].push_back(12); result[9].push_back(7); result[9].push_back(3);
 	
-	result[10].push_back(3);
-	result[10].push_back(13);
-	result[10].push_back(16);
+	result[10].push_back(3); result[10].push_back(13); result[10].push_back(16);
 
-	result[11].push_back(8);
-	result[11].push_back(6);
-	result[11].push_back(4);
+	result[11].push_back(8); result[11].push_back(6); result[11].push_back(4);
 
-	result[12].push_back(9);
-	result[12].push_back(13);
-	result[12].push_back(15);
+	result[12].push_back(9); result[12].push_back(13); result[12].push_back(15);
 
-	result[13].push_back(15);
-	result[13].push_back(12);
-	result[13].push_back(10);
+	result[13].push_back(15); result[13].push_back(12); result[13].push_back(10);
 
-	result[14].push_back(1);
-	result[14].push_back(8);
-	result[14].push_back(6);
+	result[14].push_back(1); result[14].push_back(8); result[14].push_back(6);
 
-	result[15].push_back(18);
-	result[15].push_back(13);
-	result[15].push_back(12);
+	result[15].push_back(18); result[15].push_back(13); result[15].push_back(12);
 
-	result[16].push_back(19);
-	result[16].push_back(17);
-	result[16].push_back(10);
+	result[16].push_back(19); result[16].push_back(17); result[16].push_back(10);
 
-	result[17].push_back(16);
-	result[17].push_back(19);
-	result[17].push_back(18);
+	result[17].push_back(16); result[17].push_back(19); result[17].push_back(18);
 
-	result[18].push_back(17);
-	result[18].push_back(19);
-	result[18].push_back(15);
+	result[18].push_back(17); result[18].push_back(19); result[18].push_back(15);
 
-	result[19].push_back(16);
-	result[19].push_back(17);
-	result[19].push_back(18);
+	result[19].push_back(16); result[19].push_back(17); result[19].push_back(18);
 
-	return result; }
+	return result;
+}
 //====================================================================================================================
-void Cave_List::game(std::vector<std::vector<int>> cave_array) {
-	state_player current_state;
-	current_state = state_player::ALIVE;
-	int move = 0;
-	int player = 7;
-	int arrow = 5;
-	std::vector<int> current = {};
+std::string Cave_List::welcome(int player, std::vector<std::vector<int>> &cave_array)
+{
+	std::cout << "You are in the room: " << player << '\n';		// Где игрок сейчас
+
+	std::cout << "You are movine to rooms: ";
 	std::string stroke = {};
+	std::vector<int> current = cave_array[player];
 
-	while (current_state == state_player::ALIVE) {
+	for (int a : current)
+		std::cout << a << " ";
 
-		current = cave_array[player];
+	std::cout << '\n';
 
-		std::cout << "You are in the room: " << player << '\n';		// Где игрок сейчас
+	for (int a : current)										// Проверяем примыкающие комнаты с игроком на предмет опасности
+	{
+		for (int b : bat)
+			if (a == b) std::cout << "I hear a bat\n";
 
-		std::cout << "You are movine to rooms: ";
+		for (int c : fel)
+			if (a == c) std::cout << "I feel the breeze\n";
 
-		for (int a : current)
-			std::cout << a << "   ";
-			
-		std::cout << '\n';
+		if (a == wampus) std::cout << "I smell Wampus\n";
+	}
 
-		for (int a : current)										// Проверяем примыкающие комнаты с игроком на предмет опасности
-		{
-			for (int b : bat)
-				if (a == b) std::cout << "I hear a bat\n";
+	std::cout << "What are you going to do?\n";
+	std::cin >> stroke;
 
-			for (int c : fel)
-				if (a == c) std::cout << "I feel the breeze\n";
+	return stroke;
+}
+//====================================================================================================================
+void Cave_List::shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array)
+{
+	bool miss = false;
+	char s = str[0];
+	std::vector<int> temp = {};
+	std::string res = {};
 
-			if (a == wampus) std::cout << "I smell Wampus\n";
-		}
+	if (s == 's')
+	{
+		arrow--;												// Уменьшение стрелл
+		int path_arrow = player;								// Путь стрельбы
 
-		std::cout << "What are you going to do?\n";
-		std::cout << "Move: m1 - move to room 1.\nShot: s1-3-5 - shot the room 1-3-5, if wrong way: -1 arrow!\n";
-		std::cin >> stroke;
-
-		std::string res = {};
-		char s = stroke[0];
-		std::vector<int> temp = {};
-
-		if (s == 's')
-		{
-			arrow--;
-			int path_arrow = player;
-
-			for (int i = 1; i < stroke.size(); i++) {
-				if (stroke[i] == '-') {
-					int f = std::stoi(res);
-					temp.push_back(f);
-					continue;
-				}
-				else
-					res += stroke[i];
+		for (int i = 1; i <= str.size(); i++) {
+			if (i == str.size() || str[i] == '-') {
+				int f = std::stoi(res);
+				temp.push_back(f);								// Добавляем в вектор выбранные комнаты куда стрельнули
+				res = {};
+				continue;
 			}
-			for (int g : temp)
-				if (g == wampus)
-					current_state = state_player::KILL_THE_VAMPUS;
+			else
+				res += str[i];								// Собираем числа комнат куда стрельнули
+		}
+		for (int g : temp)
+		{
+			if (g == wampus)									// Если стрела пролетела через комнату с Вампусом - он мертв!
+				cur_state = state_player::KILL_THE_VAMPUS;
+		}
+		for (int h : temp)										// Проверяем есть ли связи у всех комнат которые выбрали
+		{
+			if (cur_state == state_player::MISS)
+				break;
 
-			for (int h : temp)
-			{
-				if (current_state == state_player::MISS)
-					break;
-
-				for (int m : cave_array[path_arrow]) {
-					if (h == m) {
-						path_arrow = h;
-						break;
-					}
-					else
-						current_state = state_player::MISS;
+			for (int m : cave_array[path_arrow]) {				// Проверяем есть ли связи у всех комнат которые выбрали
+				if (h != m) continue;
+				else {
+					path_arrow = h;
+					miss = false;
 				}
 			}
-			// Еще нужна проверка нет ли Вампуса рядом с комнатами где пролетает стрела
+			if (miss == true)
+				cur_state = state_player::MISS;			// ФИксируем промах
 		}
+		// Еще нужна проверка нет ли Вампуса рядом с комнатами где пролетает стрела
+	}
+}
+//====================================================================================================================
+void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array)
+{
+	bool correct_room = false;
+	std::string res = {};
 
-		if (s == 'm') {
-			for (char m : stroke) {
-				if (std::isdigit(m))
-					res += m;
-			}
-			int m = std::stoi(res);
+		for (char m : str) {
+			if (std::isdigit(m))
+				res += m;
+		}
+		int m = std::stoi(res);								// Комната в которую мы собрались идти
+		for (int a : cave_array[player])					// Проверяем что у нас есть связь с комнатой в которую собираемся идти
+			if (m != a) continue;
+			else
+				correct_room = true;
+		if (correct_room == true)
 			player = m;
+		else
+			std::cout << "Wrong away\n";	// Проверяем что у нас есть доступ к выбранной пещере.
+}
+//====================================================================================================================
+void Cave_List::final_round_state(state_player &cur_state)
+{
+	if (cur_state == state_player::FELL)
+		std::cout << "You fell into a hole!\n GAME OVER!!!!\n\n";
+
+	if (cur_state == state_player::DEATH)
+		std::cout << "You were killed by Wampus\n GAME OVER!!!!\n\n";
+
+	if (cur_state == state_player::KILL_THE_VAMPUS)
+		std::cout << "You`re WIN!\nGAME OVER!!!!\n\n";
+
+	if (cur_state == state_player::MISS) {
+		std::cout << "You`re missing! -1 arrow\n";
+		cur_state = state_player::ALIVE;
+	}
+}
+//====================================================================================================================
+void Cave_List::game(std::vector<std::vector<int>> &cave_array)
+{
+	state_player current_state = state_player::ALIVE;
+	int player = 7;
+	
+
+	while (current_state == state_player::ALIVE)
+	{
+		bool shot_move = false;
+
+		std::string stroke = welcome(player, cave_array);	// Приветствие(Начало игры)
+
+		char s = stroke[0];
+
+		while (!shot_move)
+		{
+			if (s == 's')
+			{
+				shooting(player, stroke, current_state, cave_array);		// Стрельба
+				shot_move = true;
+			}
+
+			else if (s == 'm')
+			{
+				moving(player, stroke, cave_array);							// Движение
+				shot_move = true;
+				}
+
+			else std::cout << "Not found 's' or 'm', please, re-enter: ";
 		}
 
-		for (int ba : bat)
+		for (int ba : bat) {					// Если утащила мышь берем рандомную пещеру для игрока
 			if (player == ba) player = rand() % 20;
-		for (int fe : fel)
+		}
+
+		for (int fe : fel) {					// Проверяем не упал ли наш игрок в дыру, после мыши или зайдя "не туда"
 			if (player == fe) current_state = state_player::FELL;
-		if (player == wampus) current_state = state_player::DEATH;
+		}
 
-		if (current_state == state_player::FELL)
-			std::cout << "You fell into a hole!\n";
+		if (player == wampus) current_state = state_player::DEATH;	// Не попал ли игрок к вампусу
 
-		if (current_state == state_player::DEATH)
-			std::cout << "You were killed by Wampus\n";
 
-		if (current_state == state_player::KILL_THE_VAMPUS)
-			std::cout << "You`re WIN!\n";
+		final_round_state(current_state);	// Проверка состояния в конце раунда
+		
 	}
 }
 //====================================================================================================================
 int main() {
 	std::cout << "Welcome to the GAME 'HUNT THE VAMPUS'" << '\n';
+	std::cout << "Move: m1 - move to room 1.\nShot: s1-3-5 - shot the room 1-3-5, if wrong way: -1 arrow!\n";
 	Cave_List cave;
+	bool gam = true;
+	char otvet = {};
 
-	while (true) {
+	while (gam) {
+
 		std::vector<std::vector<int>> start_rooms = cave.generate_rooms();
 		cave.game(start_rooms);
+
+		std::cout << "Retry game?\nY/y or N/n";
+		std::cin >> otvet;
+		if (otvet == 'Y' || otvet == 'y')
+			gam = true;
+		if (otvet == 'N' || otvet == 'n')
+			gam = false;
 	}
 
 	return 0;
