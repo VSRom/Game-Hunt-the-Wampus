@@ -6,7 +6,7 @@
 //====================================================================================================================
 enum class state_player
 {
-	ALIVE, DEATH, FELL, KILL_THE_VAMPUS, MISS
+	ALIVE, DEATH, FELL, KILL_THE_WAMPUS, WAKE_UP_WAMPUS
 };
 //====================================================================================================================
 // CAVE_LIST
@@ -17,11 +17,11 @@ struct Cave_List
 
 	std::string welcome(int player, std::vector<std::vector<int>> &cave_array);	// Приветствие
 
-	void shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array);	// Стрельба
+	bool shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array);	// Стрельба
 
 	void moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array);		// Движение
 
-	void final_round_state(state_player &cur_state);	// Состояние в конце раунда
+	void final_round_state(state_player &cur_state, bool miss);	// Состояние в конце раунда
 
 	void game(std::vector<std::vector<int>> &cave_array);	// Игра
 
@@ -109,16 +109,14 @@ std::string Cave_List::welcome(int player, std::vector<std::vector<int>> &cave_a
 	return stroke;
 }
 //====================================================================================================================
-void Cave_List::shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array)
+bool Cave_List::shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array)
 {
-	bool miss = false;
+	bool miss = true;
 	char s = str[0];
 	std::vector<int> temp = {};
 	std::string res = {};
 
-	if (s == 's')
-	{
-		arrow--;												// Уменьшение стрелл
+	if (s == 's') {
 		int path_arrow = player;								// Путь стрельбы
 
 		for (int i = 1; i <= str.size(); i++) {
@@ -131,16 +129,17 @@ void Cave_List::shooting(int &player, std::string &str, state_player &cur_state,
 			else
 				res += str[i];								// Собираем числа комнат куда стрельнули
 		}
-		for (int g : temp)
-		{
+		if (temp.size() < 3) {
+			std::cout << "Incorrect path input\n";
+			return false;
+		}
+
+		for (int g : temp) {
 			if (g == wampus)									// Если стрела пролетела через комнату с Вампусом - он мертв!
-				cur_state = state_player::KILL_THE_VAMPUS;
+				cur_state = state_player::KILL_THE_WAMPUS;
 		}
 		for (int h : temp)										// Проверяем есть ли связи у всех комнат которые выбрали
 		{
-			if (cur_state == state_player::MISS)
-				break;
-
 			for (int m : cave_array[path_arrow]) {				// Проверяем есть ли связи у всех комнат которые выбрали
 				if (h != m) continue;
 				else {
@@ -148,9 +147,19 @@ void Cave_List::shooting(int &player, std::string &str, state_player &cur_state,
 					miss = false;
 				}
 			}
-			if (miss == true)
-				cur_state = state_player::MISS;			// ФИксируем промах
 		}
+
+		if (miss == true) {
+			std::cout << "You`re missing! -1 arrow\n";
+			arrow--;												// Уменьшение стрел
+			return true;
+		}
+		else {
+			arrow--;												// Уменьшение стрел
+			std::cout << "You woke up Wampus!\n";
+			cur_state = state_player::WAKE_UP_WAMPUS;
+		}
+
 		// Еще нужна проверка нет ли Вампуса рядом с комнатами где пролетает стрела
 	}
 }
@@ -164,7 +173,9 @@ void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int
 			if (std::isdigit(m))
 				res += m;
 		}
+
 		int m = std::stoi(res);								// Комната в которую мы собрались идти
+		
 		for (int a : cave_array[player])					// Проверяем что у нас есть связь с комнатой в которую собираемся идти
 			if (m != a) continue;
 			else
@@ -175,7 +186,7 @@ void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int
 			std::cout << "Wrong away\n";	// Проверяем что у нас есть доступ к выбранной пещере.
 }
 //====================================================================================================================
-void Cave_List::final_round_state(state_player &cur_state)
+void Cave_List::final_round_state(state_player &cur_state, bool miss)
 {
 	if (cur_state == state_player::FELL)
 		std::cout << "You fell into a hole!\n GAME OVER!!!!\n\n";
@@ -183,39 +194,35 @@ void Cave_List::final_round_state(state_player &cur_state)
 	if (cur_state == state_player::DEATH)
 		std::cout << "You were killed by Wampus\n GAME OVER!!!!\n\n";
 
-	if (cur_state == state_player::KILL_THE_VAMPUS)
+	if (cur_state == state_player::KILL_THE_WAMPUS)
 		std::cout << "You`re WIN!\nGAME OVER!!!!\n\n";
-
-	if (cur_state == state_player::MISS) {
-		std::cout << "You`re missing! -1 arrow\n";
-		cur_state = state_player::ALIVE;
-	}
 }
 //====================================================================================================================
 void Cave_List::game(std::vector<std::vector<int>> &cave_array)
 {
 	state_player current_state = state_player::ALIVE;
 	int player = 7;
-	
 
-	while (current_state == state_player::ALIVE)
-	{
+	while (current_state == state_player::ALIVE) {
 		bool shot_move = false;
 
 		std::string stroke = welcome(player, cave_array);	// Приветствие(Начало игры)
 
 		char s = stroke[0];
 
-		while (!shot_move)
-		{
-			if (s == 's')
-			{
-				shooting(player, stroke, current_state, cave_array);		// Стрельба
-				shot_move = true;
+		while (!shot_move) {
+			if (s == 's') {
+				if (!shooting(player, stroke, current_state, cave_array))		// Стрельба
+					shot_move = false;
+				else
+					shot_move = true;
 			}
 
-			else if (s == 'm')
-			{
+			if (current_state == state_player::WAKE_UP_WAMPUS) {
+				// Логика пробуждения и перехода в соседнюю комнату Вампуса
+			}
+
+			else if (s == 'm') {
 				moving(player, stroke, cave_array);							// Движение
 				shot_move = true;
 				}
@@ -231,7 +238,7 @@ void Cave_List::game(std::vector<std::vector<int>> &cave_array)
 			if (player == fe) current_state = state_player::FELL;
 		}
 
-		if (player == wampus) current_state = state_player::DEATH;	// Не попал ли игрок к вампусу
+		if (player == wampus) current_state = state_player::DEATH;	// Игрок зашёл к Вампусу или Вампус вышел к игроку
 
 
 		final_round_state(current_state);	// Проверка состояния в конце раунда
