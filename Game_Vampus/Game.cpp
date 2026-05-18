@@ -6,7 +6,7 @@
 //====================================================================================================================
 enum class state_player
 {
-	ALIVE, DEATH, FELL, KILL_THE_WAMPUS, WAKE_UP_WAMPUS
+	ALIVE, DEATH, FELL, KILL_THE_WAMPUS
 };
 //====================================================================================================================
 // CAVE_LIST
@@ -21,12 +21,12 @@ struct Cave_List
 
 	void moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array);		// Движение
 
-	void final_round_state(state_player &cur_state, bool miss);	// Состояние в конце раунда
+	void final_round_state(state_player &cur_state);	// Состояние в конце раунда
 
 	void game(std::vector<std::vector<int>> &cave_array);	// Игра
 
-	std::vector<int> bat = { 2, 5, 8, 13, 16, 19 };
-	std::vector<int> fel = { 1, 9, 12, 18 };
+	std::vector<int> bat = { 2, 5, 8, 13};
+	std::vector<int> fel = { 1, 12, 18 };
 	int wampus = 17;
 	int arrow = 5;
 };
@@ -134,17 +134,36 @@ bool Cave_List::shooting(int &player, std::string &str, state_player &cur_state,
 			return false;
 		}
 
+		for (int h : temp)										// Проверяем есть ли связи у всех комнат которые выбрали
+		{
+			for (int m : cave_array[path_arrow]) {				// Проверяем есть ли связи у всех комнат которые выбрали
+				if (h != m) { miss = true; break; }
+				else {
+					path_arrow = h;
+					miss = false;
+				}
+			}
+		}
+
 		for (int g : temp) {
 			if (g == wampus)									// Если стрела пролетела через комнату с Вампусом - он мертв!
 				cur_state = state_player::KILL_THE_WAMPUS;
 		}
-		for (int h : temp)										// Проверяем есть ли связи у всех комнат которые выбрали
+
+		for (int g : temp)
 		{
-			for (int m : cave_array[path_arrow]) {				// Проверяем есть ли связи у всех комнат которые выбрали
-				if (h != m) continue;
-				else {
-					path_arrow = h;
-					miss = false;
+			// ВАМПУС ПРОСНУЛСЯ если стрела пролетела рядом с Вампусом
+			for (int wuw : cave_array[wampus]) {
+
+				if (g == wuw)
+				{
+					wampus = wuw;							// Вампус перешёл в соседнюю комнату
+					if (player == wampus)
+						cur_state = state_player::DEATH;	// Если в комнату к игроку - то смерть игроку
+					else {
+						arrow--;												// Уменьшение стрел
+						std::cout << "You woke up Wampus!\n";	// Состояние пробуждения вампуса и выброса предупреждения об этом
+					}
 				}
 			}
 		}
@@ -154,13 +173,6 @@ bool Cave_List::shooting(int &player, std::string &str, state_player &cur_state,
 			arrow--;												// Уменьшение стрел
 			return true;
 		}
-		else {
-			arrow--;												// Уменьшение стрел
-			std::cout << "You woke up Wampus!\n";
-			cur_state = state_player::WAKE_UP_WAMPUS;
-		}
-
-		// Еще нужна проверка нет ли Вампуса рядом с комнатами где пролетает стрела
 	}
 }
 //====================================================================================================================
@@ -186,7 +198,7 @@ void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int
 			std::cout << "Wrong away\n";	// Проверяем что у нас есть доступ к выбранной пещере.
 }
 //====================================================================================================================
-void Cave_List::final_round_state(state_player &cur_state, bool miss)
+void Cave_List::final_round_state(state_player &cur_state)
 {
 	if (cur_state == state_player::FELL)
 		std::cout << "You fell into a hole!\n GAME OVER!!!!\n\n";
@@ -195,7 +207,7 @@ void Cave_List::final_round_state(state_player &cur_state, bool miss)
 		std::cout << "You were killed by Wampus\n GAME OVER!!!!\n\n";
 
 	if (cur_state == state_player::KILL_THE_WAMPUS)
-		std::cout << "You`re WIN!\nGAME OVER!!!!\n\n";
+		std::cout << "You WIN!\nGAME OVER!!!!\n\n";
 }
 //====================================================================================================================
 void Cave_List::game(std::vector<std::vector<int>> &cave_array)
@@ -216,10 +228,6 @@ void Cave_List::game(std::vector<std::vector<int>> &cave_array)
 					shot_move = false;
 				else
 					shot_move = true;
-			}
-
-			if (current_state == state_player::WAKE_UP_WAMPUS) {
-				// Логика пробуждения и перехода в соседнюю комнату Вампуса
 			}
 
 			else if (s == 'm') {
