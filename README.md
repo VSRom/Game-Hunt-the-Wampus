@@ -36,13 +36,13 @@
     Стандартная библиотека C++
 	
 	# Linux / macOS
-	g++ -std=c++14 -O2 -o wampus main.cpp
+	g++ -std=c++14 -O2 -o wampus Game.cpp
 
 	# Windows (MinGW)
-	g++ -std=c++14 -O2 -o wampus.exe main.cpp
+	g++ -std=c++14 -O2 -o wampus.exe Game.cpp
 
 	# Windows (MSVC)
-	cl /std:c++14 /O2 main.cpp
+	cl /std:c++14 /O2 Game.cpp
 	
 Запуск: 
 
