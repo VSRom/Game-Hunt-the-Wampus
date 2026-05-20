@@ -3,6 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <random>
+#include <ctime>
 //====================================================================================================================
 enum class state_player
 {
@@ -13,95 +14,107 @@ enum class state_player
 //====================================================================================================================
 struct Cave_List
 {
-	std::vector<std::vector<int>> generate_rooms();	// Генерация комнат
-
-	std::string welcome(int player, std::vector<std::vector<int>> &cave_array);	// Приветствие
-
+	std::vector<std::vector<int>> generate_rooms_dangers();																// Генерация комнат и опасностей
+	std::string first_step_round(int player, std::vector<std::vector<int>> &cave_array);								// Приветствие
 	bool shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array);	// Стрельба
+	void moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array);								// Движение
+	void final_step_round(state_player &cur_state);																		// Состояние в конце раунда
+	void game(std::vector<std::vector<int>> &cave_array);																// Игра
 
-	void moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array);		// Движение
-
-	void final_round_state(state_player &cur_state);	// Состояние в конце раунда
-
-	void game(std::vector<std::vector<int>> &cave_array);	// Игра
-
-	std::vector<int> bat = { 2, 5, 8, 13};
-	std::vector<int> fel = { 1, 12, 18 };
-	int wampus = 17;
+	std::vector<int> bat = {};
+	std::vector<int> fel = {};
+	int wampus = 0;
 	int arrow = 5;
 };
 //====================================================================================================================
-std::vector<std::vector<int>> Cave_List::generate_rooms() {
-//	std::mt19937 gen(time(nullptr));
+std::vector<std::vector<int>> Cave_List::generate_rooms_dangers() {
+
 	std::vector<std::vector<int>> result(20);
+	std::mt19937 gen(time(nullptr));
+	std::uniform_int_distribution<int> distrib(0, 19);
 
-	//	Жёсткая генерация пещеры
-	result[0].push_back(7); result[0].push_back(5); result[0].push_back(2);
+	// Псевдослучайная генерация пещеры
+	for (int i = 0; i < 20; i++) {
+		while (result[i].size() < 3) {
+			bool duplicate = false;
+			int temp = distrib(gen);
+			if (i == temp) continue;
+			for (int go_vec : result[i])
+				if (go_vec == temp) {
+					duplicate = true;
+					break;
+				}
+			if (!duplicate) {
+				result[i].push_back(temp);
+				if (result[temp].size() < 3)
+					for (int go_temp : result[temp])
+						if (go_temp == i)
+							duplicate = true;
+			}
+			if (!duplicate && result[temp].size() < 3)
+				result[temp].push_back(i);
+		}
+	}
 
-	result[1].push_back(5); result[1].push_back(14); result[1].push_back(8);
+	auto generate_danger = [&](std::vector<int> &danger) {
+		while (danger.size() < 4) {
+			bool duplicate = false;
+			int temp = distrib(gen);
+			for (int go_bat : danger)
+				if (go_bat == temp) {
+					duplicate = true;
+					break;
+				}
+			if (!duplicate)
+				danger.push_back(temp);
+		}
+		};
 
-	result[2].push_back(3); result[2].push_back(0); result[2].push_back(4);
+	// Псевдослучайная генерация опасностей(используем лямбда-выражение)
+	generate_danger(bat);
+	generate_danger(fel);
 
-	result[3].push_back(10); result[3].push_back(9); result[3].push_back(2);
+	bool find_bat = {};
+	bool find_fel = {};
+	// check repeat dangers
+	do {
+		wampus = distrib(gen);
+		find_bat = false; find_fel = false;
 
-	result[4].push_back(2); result[4].push_back(6); result[4].push_back(11);
-
-	result[5].push_back(7); result[5].push_back(0); result[5].push_back(1);
-
-	result[6].push_back(4); result[6].push_back(11); result[6].push_back(14);
-
-	result[7].push_back(9); result[7].push_back(0); result[7].push_back(5);
-
-	result[8].push_back(14); result[8].push_back(1); result[8].push_back(11);
-
-	result[9].push_back(12); result[9].push_back(7); result[9].push_back(3);
-	
-	result[10].push_back(3); result[10].push_back(13); result[10].push_back(16);
-
-	result[11].push_back(8); result[11].push_back(6); result[11].push_back(4);
-
-	result[12].push_back(9); result[12].push_back(13); result[12].push_back(15);
-
-	result[13].push_back(15); result[13].push_back(12); result[13].push_back(10);
-
-	result[14].push_back(1); result[14].push_back(8); result[14].push_back(6);
-
-	result[15].push_back(18); result[15].push_back(13); result[15].push_back(12);
-
-	result[16].push_back(19); result[16].push_back(17); result[16].push_back(10);
-
-	result[17].push_back(16); result[17].push_back(19); result[17].push_back(18);
-
-	result[18].push_back(17); result[18].push_back(19); result[18].push_back(15);
-
-	result[19].push_back(16); result[19].push_back(17); result[19].push_back(18);
+		for (int b : bat) {
+			if (b == wampus) find_bat = true;
+		}
+		for (int f : fel) {
+			if (f == wampus) find_fel = true;
+		}
+	} while (find_bat || find_fel);
 
 	return result;
 }
 //====================================================================================================================
-std::string Cave_List::welcome(int player, std::vector<std::vector<int>> &cave_array)
+std::string Cave_List::first_step_round(int player, std::vector<std::vector<int>> &cave_array)
 {
 	std::cout << "You are in the room: " << player << '\n';		// Где игрок сейчас
 
 	std::cout << "You are movine to rooms: ";
 	std::string stroke = {};
-	std::vector<int> current = cave_array[player];
 
-	for (int a : current)
+	auto check_danger = [&cave_array, player](std::vector<int> danger, std::string message) {
+		for (int a : cave_array[player]) {										// Проверяем примыкающие комнаты с игроком на предмет опасности
+			for (int b : danger)
+				if (a == b) { std::cout << message; return true; }
+		}
+		return false;
+		};
+
+	for (int a : cave_array[player])
 		std::cout << a << " ";
 
 	std::cout << '\n';
 
-	for (int a : current)										// Проверяем примыкающие комнаты с игроком на предмет опасности
-	{
-		for (int b : bat)
-			if (a == b) std::cout << "I hear a bat\n";
-
-		for (int c : fel)
-			if (a == c) std::cout << "I feel the breeze\n";
-
-		if (a == wampus) std::cout << "I smell Wampus\n";
-	}
+	check_danger(bat, "I hear a bat\n");
+	check_danger(fel, "I feel the breeze\n");
+	check_danger(static_cast<std::vector<int>>(wampus), "I smell Wampus\n");
 
 	std::cout << "What are you going to do?\n";
 	std::cin >> stroke;
@@ -111,69 +124,69 @@ std::string Cave_List::welcome(int player, std::vector<std::vector<int>> &cave_a
 //====================================================================================================================
 bool Cave_List::shooting(int &player, std::string &str, state_player &cur_state, std::vector<std::vector<int>> &cave_array)
 {
-	bool miss = true;
+	bool miss = false;
 	char s = str[0];
 	std::vector<int> temp = {};
 	std::string res = {};
+	int path_arrow = player;								// Путь стрельбы
+	int count = 0;
 
-	if (s == 's') {
-		int path_arrow = player;								// Путь стрельбы
 
-		for (int i = 1; i <= str.size(); i++) {
-			if (i == str.size() || str[i] == '-') {
-				int f = std::stoi(res);
-				temp.push_back(f);								// Добавляем в вектор выбранные комнаты куда стрельнули
-				res = {};
-				continue;
-			}
-			else
-				res += str[i];								// Собираем числа комнат куда стрельнули
+	auto valider_path = [&cave_array, &count](std::vector<int> path, int parr) {
+		for (auto path_var : path) {
+			for (auto near_room : cave_array[parr])
+				if (path_var == near_room) { parr = path_var; count++; }
 		}
-		if (temp.size() < 3) {
-			std::cout << "Incorrect path input\n";
+		if (count == 3)
 			return false;
-		}
-
-		for (int h : temp)										// Проверяем есть ли связи у всех комнат которые выбрали
-		{
-			for (int m : cave_array[path_arrow]) {				// Проверяем есть ли связи у всех комнат которые выбрали
-				if (h != m) { miss = true; break; }
-				else {
-					path_arrow = h;
-					miss = false;
-				}
-			}
-		}
-
-		for (int g : temp) {
-			if (g == wampus)									// Если стрела пролетела через комнату с Вампусом - он мертв!
-				cur_state = state_player::KILL_THE_WAMPUS;
-		}
-
-		for (int g : temp)
-		{
-			// ВАМПУС ПРОСНУЛСЯ если стрела пролетела рядом с Вампусом
-			for (int wuw : cave_array[wampus]) {
-
-				if (g == wuw)
-				{
-					wampus = wuw;							// Вампус перешёл в соседнюю комнату
-					if (player == wampus)
-						cur_state = state_player::DEATH;	// Если в комнату к игроку - то смерть игроку
-					else {
-						arrow--;												// Уменьшение стрел
-						std::cout << "You woke up Wampus!\n";	// Состояние пробуждения вампуса и выброса предупреждения об этом
-					}
-				}
-			}
-		}
-
-		if (miss == true) {
-			std::cout << "You`re missing! -1 arrow\n";
-			arrow--;												// Уменьшение стрел
+		else
 			return true;
+		};
+
+	for (int i = 1; i <= str.size(); i++) {
+		if (i == str.size() || str[i] == '-') {
+			int f = std::stoi(res);
+			temp.push_back(f);								// Добавляем в вектор выбранные комнаты куда стрельнули
+			res = {};
+			continue;
+		}
+		else
+			res += str[i];								// Собираем числа комнат куда стрельнули
+	}
+
+	if (temp.size() < 3) {
+		std::cout << "Incorrect path input\n";
+		return false;
+	}
+
+	miss = valider_path(temp, path_arrow);
+
+	for (int g : temp) {
+		if (g == wampus)									// Если стрела пролетела через комнату с Вампусом - он мертв!
+			cur_state = state_player::KILL_THE_WAMPUS;
+	}
+
+	for (int g : temp) {
+		for (int wuw : cave_array[wampus]) {			// ВАМПУС ПРОСНУЛСЯ если стрела пролетела рядом с Вампусом
+			if (g == wuw)
+			{
+				wampus = wuw;							// Вампус перешёл в соседнюю комнату
+				if (player == wampus)
+					cur_state = state_player::DEATH;	// Если в комнату к игроку - то смерть игроку
+				else {
+					arrow--;												// Уменьшение стрел
+					std::cout << "You woke up Wampus!\n";	// Состояние пробуждения вампуса и выброса предупреждения об этом
+				}
+			}
 		}
 	}
+
+	if (miss == true) {
+		std::cout << "You`re missing! -1 arrow\n";
+		arrow--;												// Уменьшение стрел
+		return true;
+	}
+	return false;
 }
 //====================================================================================================================
 void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int>> &cave_array)
@@ -181,24 +194,29 @@ void Cave_List::moving(int &player, std::string str, std::vector<std::vector<int
 	bool correct_room = false;
 	std::string res = {};
 
-		for (char m : str) {
-			if (std::isdigit(m))
-				res += m;
+	auto is_connect = [&cave_array](int from, int to) {		// Проверяем что у нас есть связь с комнатой в которую собираемся идти
+		for (int a : cave_array[from]) {
+			if (to == a)
+				return true;
 		}
+		return false;
+		};
 
-		int m = std::stoi(res);								// Комната в которую мы собрались идти
-		
-		for (int a : cave_array[player])					// Проверяем что у нас есть связь с комнатой в которую собираемся идти
-			if (m != a) continue;
-			else
-				correct_room = true;
-		if (correct_room == true)
-			player = m;
-		else
-			std::cout << "Wrong away\n";	// Проверяем что у нас есть доступ к выбранной пещере.
+	for (char m : str) {
+		if (std::isdigit(m))
+			res += m;
+	}
+
+	int m = std::stoi(res);									// Комната в которую мы собрались идти
+
+	if (is_connect(player, m))
+		player = m;
+	else
+		std::cout << "Wrong away\n";
+
 }
 //====================================================================================================================
-void Cave_List::final_round_state(state_player &cur_state)
+void Cave_List::final_step_round(state_player &cur_state)
 {
 	if (cur_state == state_player::FELL)
 		std::cout << "You fell into a hole!\n GAME OVER!!!!\n\n";
@@ -213,33 +231,48 @@ void Cave_List::final_round_state(state_player &cur_state)
 void Cave_List::game(std::vector<std::vector<int>> &cave_array)
 {
 	state_player current_state = state_player::ALIVE;
-	int player = 7;
+	int player = 0;
+	std::mt19937 gen(time(nullptr));
+	std::uniform_int_distribution<int> distrib(0, 19);
+	bool find_bat = {};
+	bool find_fel = {};
+	bool find_wampus = {};
+	// check player position
+	do {
+		player = distrib(gen);
+		find_bat = false; find_fel = false; find_wampus = false;
+
+		for (int b : bat) {
+			if (b == player) find_bat = true;
+		}
+		for (int f : fel) {
+			if (f == player) find_fel = true;
+		}
+		if (wampus == player) find_wampus = true;
+
+	} while (find_bat || find_fel || find_wampus);
 
 	while (current_state == state_player::ALIVE) {
 		bool shot_move = false;
 
-		std::string stroke = welcome(player, cave_array);	// Приветствие(Начало игры)
+		std::string stroke = first_step_round(player, cave_array);	// Приветствие(Начало игры)
 
 		char s = stroke[0];
 
 		while (!shot_move) {
-			if (s == 's') {
-				if (!shooting(player, stroke, current_state, cave_array))		// Стрельба
-					shot_move = false;
-				else
-					shot_move = true;
-			}
+			if (s == 's')
+				shot_move = shooting(player, stroke, current_state, cave_array);		// Стрельба
 
 			else if (s == 'm') {
 				moving(player, stroke, cave_array);							// Движение
 				shot_move = true;
-				}
+			}
 
 			else std::cout << "Not found 's' or 'm', please, re-enter: ";
 		}
 
 		for (int ba : bat) {					// Если утащила мышь берем рандомную пещеру для игрока
-			if (player == ba) player = rand() % 20;
+			if (player == ba) player = distrib(gen);
 		}
 
 		for (int fe : fel) {					// Проверяем не упал ли наш игрок в дыру, после мыши или зайдя "не туда"
@@ -248,9 +281,7 @@ void Cave_List::game(std::vector<std::vector<int>> &cave_array)
 
 		if (player == wampus) current_state = state_player::DEATH;	// Игрок зашёл к Вампусу или Вампус вышел к игроку
 
-
-		final_round_state(current_state);	// Проверка состояния в конце раунда
-		
+		final_step_round(current_state);	// Проверка состояния в конце раунда
 	}
 }
 //====================================================================================================================
@@ -263,7 +294,7 @@ int main() {
 
 	while (gam) {
 
-		std::vector<std::vector<int>> start_rooms = cave.generate_rooms();
+		std::vector<std::vector<int>> start_rooms = cave.generate_rooms_dangers();
 		cave.game(start_rooms);
 
 		std::cout << "Retry game?\nY/y or N/n";
@@ -278,7 +309,7 @@ int main() {
 }
 //====================================================================================================================
 /*
-	12. Реализуйте версию игры “Охота на Вампуса”(или просто “Вамп”).
+	V	12. Реализуйте версию игры “Охота на Вампуса”(или просто “Вамп”).
 Это простая компьютерная(не графическая) игра, изобретенная Грегори Йобом(Gregory Yob).
 
 - Цель этой игры — найти довольно смышленого монстра, прячущегося в темном пещерном лабиринте.
